@@ -32,7 +32,7 @@ def process_song_data(spark, input_data, output_data):
 
     """
     # get filepath to song data file
-    song_data = input_data + 'song_data/A/A/A/TRAAAAK128F9318786.json'
+    song_data = input_data + 'song_data/*/*/*/*.json'
 
     # read song data file
     df = spark.read.json(song_data)
@@ -73,13 +73,13 @@ def process_log_data(spark, input_data, output_data):
 
     """
     # get filepath to log data file
-    log_data  = input_data + 'log_data/2018/11/2018-11-01-events.json'
+    log_data  = input_data + 'log_data/*/*/*.json'
 
     # read log data file
     df = spark.read.json(log_data)
 
     # filter by actions for song plays
-    df = df.filter("df.page=='NextSong'")
+    df = df.filter(df.page=='NextSong')
     df.createOrReplaceTempView("log_data_temp")
     # extract columns for users table    
     artists_table = spark.sql("""select
@@ -87,7 +87,7 @@ def process_log_data(spark, input_data, output_data):
     firstName first_name,
     lastName as last_name,
     gender,
-    level from log_data_temp where user_id is not null""")
+    level from log_data_temp where userid is not null""")
 
     # write users table to parquet files
     artists_table.write.mode("overwrite").parquet(output_data+"user_table/")
@@ -115,7 +115,7 @@ def process_log_data(spark, input_data, output_data):
     time_table.write.mode("overwrite").partitionBy("year","month").parquet(output_data+"time_table/")
 
     # read in song data to use for songplays table
-    song_df = spark.read.parquet(output_data+'songs_table/')
+    #song_df = spark.read.parquet(output_data+'songs_table/')
 
     # extract columns from joined song and log datasets to create songplays table 
     songplays_table =  spark.sql("""
@@ -142,7 +142,12 @@ def process_log_data(spark, input_data, output_data):
 def main():
     spark = create_spark_session()
     input_data = "s3a://udacity-dend/"
-    output_data = "s3a://udacity-dend/dloutput/"
+    
+    """ output path is my personal s3 bucket 
+    because i am getting permission error 
+    while writing in this bucket s3a://udacity-dend"""
+    
+    output_data = "s3a://data-lake-project-bucket/output/"
     
     process_song_data(spark, input_data, output_data)    
     process_log_data(spark, input_data, output_data)
